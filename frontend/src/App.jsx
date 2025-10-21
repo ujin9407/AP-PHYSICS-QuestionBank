@@ -1,0 +1,279 @@
+import React, { useState, useEffect } from 'react';
+import UploadZone from './components/UploadZone';
+import DiagramTypeSelector from './components/DiagramTypeSelector';
+import TemplateSelector from './components/TemplateSelector';
+import DiagramPreview from './components/DiagramPreview';
+import { uploadDiagram, convertDiagram, getConversionStatus, exportToPdf } from './services/api';
+
+function App() {
+  const [selectedType, setSelectedType] = useState('general');
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [uploadedImageId, setUploadedImageId] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [conversionId, setConversionId] = useState(null);
+  const [conversionStatus, setConversionStatus] = useState(null);
+  const [tikzCode, setTikzCode] = useState(null);
+  const [description, setDescription] = useState('');
+
+  // Poll conversion status
+  useEffect(() => {
+    if (!conversionId || conversionStatus === 'completed' || conversionStatus === 'failed') {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const status = await getConversionStatus(conversionId);
+        setConversionStatus(status.status);
+        
+        if (status.status === 'completed') {
+          setTikzCode(status.tikz_code);
+          setIsConverting(false);
+        } else if (status.status === 'failed') {
+          alert('변환 실패: ' + (status.error_message || '알 수 없는 오류'));
+          setIsConverting(false);
+        }
+      } catch (error) {
+        console.error('Failed to get conversion status:', error);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [conversionId, conversionStatus]);
+
+  const handleUpload = async (file) => {
+    setIsUploading(true);
+    try {
+      const response = await uploadDiagram(file);
+      setUploadedImageId(response.id);
+      setUploadedImageUrl(URL.createObjectURL(file));
+      
+      // Auto-start conversion
+      await handleConvert(response.id);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('업로드 실패: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleConvert = async (imageId) => {
+    setIsConverting(true);
+    setConversionStatus('processing');
+    
+    try {
+      const response = await convertDiagram(
+        imageId,
+        selectedType,
+        description || null
+      );
+      
+      setConversionId(response.id);
+    } catch (error) {
+      console.error('Conversion failed:', error);
+      alert('변환 실패: ' + (error.response?.data?.detail || error.message));
+      setIsConverting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!conversionId) {
+      alert('먼저 다이어그램을 변환해주세요.');
+      return;
+    }
+
+    try {
+      const response = await exportToPdf(conversionId, true, '물리 다이어그램');
+      
+      // Download the PDF
+      const link = document.createElement('a');
+      link.href = response.pdf_url;
+      link.download = response.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('PDF 내보내기가 완료되었습니다!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('PDF 내보내기 실패: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const handleReset = () => {
+    setUploadedImageId(null);
+    setUploadedImageUrl(null);
+    setConversionId(null);
+    setConversionStatus(null);
+    setTikzCode(null);
+    setDescription('');
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow-md">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Physics Diagram Converter
+              </h1>
+              <p className="text-gray-600 mt-1">
+                손글씨 물리 다이어그램을 디지털 TikZ 다이어그램으로 변환
+              </p>
+            </div>
+            <div className="text-4xl">🔬</div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Input */}
+          <div className="space-y-6">
+            <DiagramTypeSelector
+              selectedType={selectedType}
+              onSelectType={setSelectedType}
+            />
+
+            <div className="card">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                설명 (선택사항)
+              </h3>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="다이어그램에 대한 추가 설명을 입력하세요..."
+                className="input-field h-24 resize-none"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                추가 설명을 제공하면 더 정확한 변환 결과를 얻을 수 있습니다.
+              </p>
+            </div>
+
+            <TemplateSelector
+              selectedType={selectedType}
+              onSelectTemplate={setSelectedTemplate}
+            />
+
+            {!uploadedImageId ? (
+              <UploadZone onUpload={handleUpload} isUploading={isUploading} />
+            ) : (
+              <div className="card">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                  업로드된 이미지
+                </h3>
+                <img
+                  src={uploadedImageUrl}
+                  alt="Uploaded diagram"
+                  className="w-full rounded-lg border border-gray-200"
+                />
+                <button
+                  onClick={handleReset}
+                  className="btn-secondary w-full mt-4"
+                >
+                  새 이미지 업로드
+                </button>
+              </div>
+            )}
+
+            {isConverting && (
+              <div className="card bg-yellow-50 border border-yellow-200">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600"></div>
+                  <div>
+                    <p className="font-semibold text-yellow-900">
+                      다이어그램 변환 중...
+                    </p>
+                    <p className="text-sm text-yellow-800">
+                      AI가 손글씨 다이어그램을 분석하고 있습니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Output */}
+          <div className="space-y-6">
+            {conversionId && conversionStatus === 'completed' ? (
+              <DiagramPreview
+                conversionId={conversionId}
+                onExport={handleExport}
+                tikzCode={tikzCode}
+              />
+            ) : (
+              <div className="card bg-gray-50 min-h-[400px] flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <svg
+                    className="w-24 h-24 mx-auto mb-4 text-gray-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="text-lg font-medium">
+                    다이어그램을 업로드하면 여기에 미리보기가 표시됩니다
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          <div className="card text-center">
+            <div className="text-4xl mb-3">🤖</div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              AI 기반 변환
+            </h3>
+            <p className="text-sm text-gray-600">
+              DaTikZv2를 사용한 정확한 손글씨 다이어그램 인식
+            </p>
+          </div>
+
+          <div className="card text-center">
+            <div className="text-4xl mb-3">⚡</div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              실시간 미리보기
+            </h3>
+            <p className="text-sm text-gray-600">
+              변환된 다이어그램을 즉시 확인하고 수정 가능
+            </p>
+          </div>
+
+          <div className="card text-center">
+            <div className="text-4xl mb-3">📄</div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              PDF 내보내기
+            </h3>
+            <p className="text-sm text-gray-600">
+              다이어그램과 TikZ 코드를 PDF로 저장
+            </p>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white mt-12 py-6 border-t">
+        <div className="container mx-auto px-4 text-center text-gray-600">
+          <p>© 2024 Physics Diagram Converter. Powered by DaTikZv2</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
