@@ -7,7 +7,8 @@ from .routers import (
     convert_router,
     templates_router,
     render_router,
-    export_router
+    export_router,
+    solver_router
 )
 import logging
 
@@ -41,6 +42,7 @@ app.include_router(convert_router)
 app.include_router(templates_router)
 app.include_router(render_router)
 app.include_router(export_router)
+app.include_router(solver_router)
 
 # Mount static files for outputs
 app.mount("/api/outputs", StaticFiles(directory=settings.output_dir), name="outputs")

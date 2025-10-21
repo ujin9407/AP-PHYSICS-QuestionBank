@@ -83,13 +83,34 @@ class TemplateService:
                 "description": "A basic series circuit with resistors",
                 "diagram_type": "electricity",
                 "tikz_code": """\\begin{tikzpicture}[scale=1.5]
-    \\draw (0,0) to[battery1, l=$V$] (0,2)
-          to[R, l=$R_1$] (2,2)
-          to[R, l=$R_2$] (4,2)
-          to[lamp, l=$L$] (4,0)
-          to[short] (0,0);
+    % Battery (vertical)
+    \\draw[thick] (0,0) -- (0,0.5);
+    \\draw[thick] (-0.2,0.5) -- (0.2,0.5);
+    \\draw[thick] (-0.1,0.6) -- (0.1,0.6);
+    \\node[left] at (-0.3,0.55) {$+$};
+    \\node[left] at (-0.3,0.05) {$-$};
+    \\node[left] at (-0.5,0.3) {$V$};
+    \\draw[thick] (0,0.6) -- (0,1);
     
-    \\draw[->,blue,thick] (1,2.3) -- (2,2.3) node[midway,above] {$I$};
+    % Wire to R1
+    \\draw[thick] (0,1) -- (1.5,1);
+    
+    % Resistor R1
+    \\draw[thick] (1.5,1) -- (1.7,1.2) -- (1.9,0.8) -- (2.1,1.2) -- (2.3,0.8) -- (2.5,1.2) -- (2.7,1);
+    \\node[above] at (2.1,1.2) {$R_1$};
+    
+    % Wire to R2
+    \\draw[thick] (2.7,1) -- (4,1);
+    
+    % Resistor R2
+    \\draw[thick] (4,1) -- (4.2,1.2) -- (4.4,0.8) -- (4.6,1.2) -- (4.8,0.8) -- (5,1.2) -- (5.2,1);
+    \\node[above] at (4.6,1.2) {$R_2$};
+    
+    % Wire down
+    \\draw[thick] (5.2,1) -- (6,1) -- (6,0) -- (0,0);
+    
+    % Current arrow
+    \\draw[->,blue,very thick] (1,1.3) -- (2,1.3) node[midway,above] {$I$};
 \\end{tikzpicture}"""
             },
             {
@@ -98,13 +119,42 @@ class TemplateService:
                 "description": "Resistors in parallel configuration",
                 "diagram_type": "electricity",
                 "tikz_code": """\\begin{tikzpicture}[scale=1.5]
-    \\draw (0,0) to[battery1, l=$V$] (0,3)
-          to[short] (1,3);
-    \\draw (1,3) to[R, l=$R_1$] (3,3) to[short] (4,3);
-    \\draw (1,3) to[short] (1,1.5) to[R, l=$R_2$] (3,1.5) to[short] (3,3);
-    \\draw (4,3) to[short] (4,0) to[short] (0,0);
+    % Battery (vertical)
+    \\draw[thick] (0,0) -- (0,1);
+    \\draw[thick] (-0.2,1) -- (0.2,1);
+    \\draw[thick] (-0.1,1.1) -- (0.1,1.1);
+    \\node[left] at (-0.3,1.05) {$+$};
+    \\node[left] at (-0.3,0.55) {$-$};
+    \\node[left] at (-0.5,0.5) {$V$};
+    \\draw[thick] (0,1.1) -- (0,2);
     
-    \\draw[->,blue,thick] (0.3,3.3) -- (1.3,3.3) node[midway,above] {$I$};
+    % Top wire
+    \\draw[thick] (0,2) -- (1,2);
+    
+    % Branch point
+    \\fill (1,2) circle (2pt);
+    
+    % Upper branch with R1
+    \\draw[thick] (1,2) -- (2,2);
+    \\draw[thick] (2,2) -- (2.2,2.2) -- (2.4,1.8) -- (2.6,2.2) -- (2.8,1.8) -- (3,2.2) -- (3.2,2);
+    \\node[above] at (2.6,2.2) {$R_1$};
+    \\draw[thick] (3.2,2) -- (4,2);
+    
+    % Lower branch with R2
+    \\draw[thick] (1,2) -- (1,1);
+    \\draw[thick] (1,1) -- (2,1);
+    \\draw[thick] (2,1) -- (2.2,1.2) -- (2.4,0.8) -- (2.6,1.2) -- (2.8,0.8) -- (3,1.2) -- (3.2,1);
+    \\node[above] at (2.6,1.2) {$R_2$};
+    \\draw[thick] (3.2,1) -- (4,1) -- (4,2);
+    
+    % Merge point and return
+    \\fill (4,2) circle (2pt);
+    \\draw[thick] (4,2) -- (5,2) -- (5,0) -- (0,0);
+    
+    % Current arrows
+    \\draw[->,blue,very thick] (0.3,2.3) -- (1.3,2.3) node[midway,above] {$I$};
+    \\draw[->,blue,thick] (1.3,1.7) -- (1.8,1.7) node[midway,above,font=\\small] {$I_1$};
+    \\draw[->,blue,thick] (1.3,0.7) -- (1.8,0.7) node[midway,above,font=\\small] {$I_2$};
 \\end{tikzpicture}"""
             },
             {
