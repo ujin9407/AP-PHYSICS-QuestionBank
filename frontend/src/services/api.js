@@ -72,4 +72,32 @@ export const exportToPdf = async (diagramId, includeCode = false, title = null) 
   return response.data;
 };
 
+// Problem Solver service
+export const uploadProblem = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await axios.post(`${API_BASE_URL}/solver/upload-problem`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  
+  return response.data;
+};
+
+export const solveProblem = async (problemText = null, imageId = null) => {
+  const response = await api.post('/solver/solve', {
+    problem_text: problemText,
+    image_id: imageId,
+  });
+  
+  return response.data;
+};
+
+export const getSolution = async (solutionId) => {
+  const response = await api.get(`/solver/solution/${solutionId}`);
+  return response.data;
+};
+
 export default api;

@@ -9,6 +9,37 @@
     <!-- TikZJax for rendering TikZ in browser -->
     <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
     <script src="https://tikzjax.com/v1/tikzjax.js"></script>
+    
+    <!-- TikZJax helper for dynamic content -->
+    <script>
+      // TikZJax를 위한 글로벌 헬퍼 함수
+      window.renderTikZ = function(container) {
+        if (!container) return;
+        
+        // TikZJax가 로드될 때까지 대기
+        const waitForTikzJax = setInterval(() => {
+          if (window.tikzjax) {
+            clearInterval(waitForTikzJax);
+            
+            // 컨테이너 내의 모든 script[type="text/tikz"] 요소 찾기
+            const scripts = container.querySelectorAll('script[type="text/tikz"]');
+            
+            scripts.forEach(script => {
+              if (!script.processed) {
+                script.processed = true;
+                
+                // TikZJax 처리 트리거
+                const event = new Event('load');
+                script.dispatchEvent(event);
+              }
+            });
+          }
+        }, 100);
+        
+        // 10초 타임아웃
+        setTimeout(() => clearInterval(waitForTikzJax), 10000);
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>

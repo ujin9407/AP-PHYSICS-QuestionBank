@@ -2,28 +2,53 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const DiagramPreview = ({ conversionId, onExport, tikzCode }) => {
   const [showCode, setShowCode] = useState(false);
-  const [isRendering, setIsRendering] = useState(false);
-  const tikzContainerRef = useRef(null);
+  const [renderKey, setRenderKey] = useState(0);
+  const iframeRef = useRef(null);
 
   console.log('DiagramPreview:', { conversionId, hasCode: !!tikzCode, showCode });
 
   useEffect(() => {
-    if (tikzCode && !showCode && tikzContainerRef.current) {
-      setIsRendering(true);
+    if (tikzCode && !showCode && iframeRef.current) {
+      // iframe을 사용하여 TikZJax를 독립적으로 렌더링
+      const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
       
-      // TikZJax가 로드될 때까지 기다림
-      const checkTikzJax = setInterval(() => {
-        if (window.tikzjax) {
-          clearInterval(checkTikzJax);
-          setTimeout(() => {
-            setIsRendering(false);
-          }, 2000); // TikZ 렌더링 시간 대기
-        }
-      }, 100);
-
-      return () => clearInterval(checkTikzJax);
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
+  <script src="https://tikzjax.com/v1/tikzjax.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: white;
     }
-  }, [tikzCode, showCode]);
+    .tikz-wrapper {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="tikz-wrapper">
+    <script type="text/tikz">
+${tikzCode}
+    </script>
+  </div>
+</body>
+</html>
+      `;
+      
+      iframeDoc.open();
+      iframeDoc.write(htmlContent);
+      iframeDoc.close();
+    }
+  }, [tikzCode, showCode, renderKey]);
 
   if (!tikzCode) {
     return (
@@ -48,7 +73,8 @@ const DiagramPreview = ({ conversionId, onExport, tikzCode }) => {
 \\usepackage{tikz}
 \\usepackage{amsmath}
 \\usepackage{amssymb}
-\\usetikzlibrary{arrows.meta,positioning,shapes,decorations.markings,circuits.ee.IEC}
+\\usepackage{circuitikz}
+\\usetikzlibrary{arrows.meta,positioning,shapes,decorations.markings,patterns,circuits.ee.IEC}
 
 \\begin{document}
 ${tikzCode}
@@ -104,29 +130,35 @@ ${tikzCode}
                 </div>
               </div>
               
-              {isRendering && (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">TikZ 다이어그램 렌더링 중...</p>
-                </div>
-              )}
-              
-              {/* TikZ 렌더링 영역 */}
+              {/* TikZ 렌더링 영역 - iframe 사용 */}
               <div 
-                ref={tikzContainerRef}
-                className="tikz-container flex items-center justify-center min-h-[300px] p-4"
+                className="tikz-container flex items-center justify-center min-h-[400px] p-4"
                 style={{ 
                   background: 'white',
                   border: '2px dashed #e5e7eb',
                   borderRadius: '0.5rem'
                 }}
               >
-                <script type="text/tikz">
-                  {tikzCode}
-                </script>
+                <iframe
+                  ref={iframeRef}
+                  key={renderKey}
+                  title="TikZ Diagram"
+                  style={{
+                    width: '100%',
+                    minHeight: '400px',
+                    border: 'none',
+                    background: 'white'
+                  }}
+                />
               </div>
 
               <div className="mt-6 flex justify-center gap-3">
+                <button
+                  onClick={() => setRenderKey(prev => prev + 1)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  🔄 다시 렌더링
+                </button>
                 <button
                   onClick={() => setShowCode(true)}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
