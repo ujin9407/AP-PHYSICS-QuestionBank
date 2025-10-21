@@ -3,11 +3,14 @@ import React, { useState, useEffect } from 'react';
 const DiagramPreview = ({ conversionId, onExport, tikzCode }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showCode, setShowCode] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (conversionId) {
+      console.log('Setting preview URL for:', conversionId);
       // In real implementation, this would be from the conversion status
       setPreviewUrl(`/api/outputs/${conversionId}.png`);
+      setImageError(false);
     }
   }, [conversionId]);
 
@@ -18,8 +21,23 @@ const DiagramPreview = ({ conversionId, onExport, tikzCode }) => {
     }
   };
 
-  if (!previewUrl && !tikzCode) {
-    return null;
+  const handleImageError = () => {
+    console.error('Image failed to load:', previewUrl);
+    setImageError(true);
+  };
+
+  if (!tikzCode) {
+    console.log('DiagramPreview: No TikZ code yet');
+    return (
+      <div className="card">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center text-gray-500">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p>TikZ 코드를 생성하는 중...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -45,15 +63,29 @@ const DiagramPreview = ({ conversionId, onExport, tikzCode }) => {
 
         {!showCode ? (
           <div className="bg-gray-100 rounded-lg p-8 flex items-center justify-center min-h-[400px]">
-            {previewUrl ? (
+            {!imageError && previewUrl ? (
               <img
                 src={previewUrl}
                 alt="Diagram Preview"
                 className="max-w-full max-h-[500px] object-contain"
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300" fill="%23f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="%23999">미리보기를 불러오는 중...</text></svg>';
-                }}
+                onError={handleImageError}
               />
+            ) : imageError ? (
+              <div className="text-center">
+                <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 max-w-xl">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-600 mb-2">이미지 미리보기를 불러올 수 없습니다</p>
+                  <p className="text-sm text-gray-500 mb-4">TikZ 코드는 정상적으로 생성되었습니다</p>
+                  <button
+                    onClick={() => setShowCode(true)}
+                    className="btn-primary"
+                  >
+                    TikZ 코드 보기
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="text-center text-gray-500">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>

@@ -23,20 +23,25 @@ function App() {
       return;
     }
 
+    console.log('Polling conversion status for:', conversionId);
+    
     const interval = setInterval(async () => {
       try {
         const status = await getConversionStatus(conversionId);
+        console.log('Conversion status update:', status);
         setConversionStatus(status.status);
         
         if (status.status === 'completed') {
           setTikzCode(status.tikz_code);
           setIsConverting(false);
+          console.log('Conversion completed with TikZ code:', status.tikz_code?.substring(0, 100));
         } else if (status.status === 'failed') {
           alert('변환 실패: ' + (status.error_message || '알 수 없는 오류'));
           setIsConverting(false);
         }
       } catch (error) {
         console.error('Failed to get conversion status:', error);
+        console.error('Error details:', error.response?.data);
       }
     }, 2000);
 
@@ -65,15 +70,18 @@ function App() {
     setConversionStatus('processing');
     
     try {
+      console.log('Starting conversion for imageId:', imageId, 'type:', selectedType);
       const response = await convertDiagram(
         imageId,
         selectedType,
         description || null
       );
       
+      console.log('Conversion started:', response);
       setConversionId(response.id);
     } catch (error) {
       console.error('Conversion failed:', error);
+      console.error('Error details:', error.response?.data);
       alert('변환 실패: ' + (error.response?.data?.detail || error.message));
       setIsConverting(false);
     }
@@ -207,6 +215,15 @@ function App() {
                 onExport={handleExport}
                 tikzCode={tikzCode}
               />
+            ) : conversionId && conversionStatus === 'processing' ? (
+              <div className="card bg-blue-50 min-h-[400px] flex items-center justify-center">
+                <div className="text-center text-blue-700">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-lg font-semibold">변환 중...</p>
+                  <p className="text-sm mt-2">AI가 다이어그램을 분석하고 있습니다</p>
+                  <p className="text-xs mt-4 text-blue-600">ID: {conversionId}</p>
+                </div>
+              </div>
             ) : (
               <div className="card bg-gray-50 min-h-[400px] flex items-center justify-center">
                 <div className="text-center text-gray-500">
@@ -226,6 +243,9 @@ function App() {
                   <p className="text-lg font-medium">
                     다이어그램을 업로드하면 여기에 미리보기가 표시됩니다
                   </p>
+                  {conversionStatus && (
+                    <p className="text-sm mt-2">상태: {conversionStatus}</p>
+                  )}
                 </div>
               </div>
             )}
