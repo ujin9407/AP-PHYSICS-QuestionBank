@@ -90,7 +90,10 @@ const TemplateSelector = ({ selectedType, onSelectTemplate }) => {
       {selectedTemplate && (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm text-green-800">
-            ✓ 템플릿이 선택되었습니다. 이미지를 업로드하면 이 템플릿을 기반으로 변환됩니다.
+            ✓ 템플릿이 선택되었습니다! 오른쪽에서 미리보기를 확인하세요.
+          </p>
+          <p className="text-xs text-green-700 mt-1">
+            이미지를 업로드하면 이 템플릿을 기반으로 변환됩니다.
           </p>
         </div>
       )}

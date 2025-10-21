@@ -166,7 +166,17 @@ function App() {
 
             <TemplateSelector
               selectedType={selectedType}
-              onSelectTemplate={setSelectedTemplate}
+              onSelectTemplate={(template) => {
+                setSelectedTemplate(template);
+                // 템플릿 선택 시 미리보기를 바로 보여주기
+                if (template && template.tikz_code) {
+                  console.log('Template selected:', template.id);
+                  // 데모 모드: 템플릿의 TikZ 코드를 바로 표시
+                  setTikzCode(template.tikz_code);
+                  setConversionId(`template-${template.id}`);
+                  setConversionStatus('completed');
+                }
+              }}
             />
 
             {!uploadedImageId ? (
